@@ -111,16 +111,18 @@ model TripMember {
   invitedEmail String?
   isPending    Boolean @default(false)
 
-  role MemberRole @default(MEMBER)
+  role              MemberRole @default(MEMBER)
+  checklistIsPublic Boolean    @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  itemClaims     ItemClaim[]
-  assignedTasks  Task[]                  @relation("TaskAssignee")
-  assignedMeals  Meal[]                  @relation("MealAssignee")
-  paidExpenses   Expense[]               @relation("ExpensePayer")
-  checklistItems PersonalChecklistItem[]
+  itemClaims          ItemClaim[]
+  assignedTasks       Task[]                      @relation("TaskAssignee")
+  assignedMeals       Meal[]                      @relation("MealAssignee")
+  paidExpenses        Expense[]                   @relation("ExpensePayer")
+  checklistCategories PersonalChecklistCategory[]
+  checklistItems      PersonalChecklistItem[]
 
   @@unique([tripId, userId])
   @@index([tripId])
@@ -258,21 +260,44 @@ model Meal {
 }
 
 // ─────────────────────────────────────────────
-// PersonalChecklistItem
+// PersonalChecklistCategory
 // ─────────────────────────────────────────────
 
-model PersonalChecklistItem {
+model PersonalChecklistCategory {
   id        String     @id @default(cuid())
   memberId  String
   member    TripMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  text      String
-  isChecked Boolean    @default(false)
+  name      String
   sortOrder Int        @default(0)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  items PersonalChecklistItem[]
+
   @@index([memberId])
+  @@map("personal_checklist_categories")
+}
+
+// ─────────────────────────────────────────────
+// PersonalChecklistItem
+// ─────────────────────────────────────────────
+
+model PersonalChecklistItem {
+  id         String                     @id @default(cuid())
+  memberId   String
+  member     TripMember                 @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  categoryId String?
+  category   PersonalChecklistCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  text       String
+  isChecked  Boolean                    @default(false)
+  sortOrder  Int                        @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([memberId])
+  @@index([categoryId])
   @@map("personal_checklist_items")
 }
 
