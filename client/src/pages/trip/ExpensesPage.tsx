@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import { expensesApi, type CreateExpensePayload } from '../../api/expenses';
 import { membersApi } from '../../api/members';
 import { TripLayout } from '../../layouts/TripLayout';
-import { Card, CardHeader, CardBody } from '../../components/ui/Card';
+import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Modal, ConfirmModal } from '../../components/ui/Modal';
@@ -48,16 +48,33 @@ export function ExpensesPage() {
     },
   });
 
-  const { register, handleSubmit, reset } = useForm<CreateExpensePayload>({
+  const [unitPrice, setUnitPrice] = useState('');
+  const [qty, setQty] = useState('');
+
+  const { register, handleSubmit, reset, setValue } = useForm<CreateExpensePayload>({
     defaultValues: { splitType: 'EQUAL' },
   });
+
+  function handleCalculatorChange(newUnitPrice: string, newQty: string) {
+    const p = parseFloat(newUnitPrice);
+    const q = parseFloat(newQty);
+    if (!isNaN(p) && !isNaN(q) && p > 0 && q > 0) {
+      setValue('amount', parseFloat((p * q).toFixed(2)));
+    }
+  }
+
+  function resetForm() {
+    reset();
+    setUnitPrice('');
+    setQty('');
+  }
 
   const createMutation = useMutation({
     mutationFn: (data: CreateExpensePayload) => expensesApi.create(tripId!, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['expenses', tripId] });
       toast.success('Expense added');
-      reset();
+      resetForm();
       setShowForm(false);
     },
     onError: () => toast.error('Failed to add expense'),
@@ -147,10 +164,50 @@ export function ExpensesPage() {
           </div>
         )}
 
-        <Modal open={showForm} onClose={() => setShowForm(false)} title="Add expense">
+        <Modal open={showForm} onClose={() => { setShowForm(false); resetForm(); }} title="Add expense">
           <form onSubmit={handleSubmit((d) => createMutation.mutate({ ...d, amount: Number(d.amount) }))} className="flex flex-col gap-4">
             <Input label="Description *" placeholder="e.g. Firewood" {...register('title', { required: true })} />
-            <Input label="Amount (R) *" type="number" step="0.01" min="0.01" placeholder="0.00" {...register('amount', { required: true })} />
+
+            {/* Quantity calculator */}
+            <div>
+              <p className="text-xs font-medium text-stone-500 mb-1.5">Quantity calculator <span className="font-normal text-stone-400">(optional)</span></p>
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <input
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    placeholder="Unit price"
+                    value={unitPrice}
+                    onChange={(e) => { setUnitPrice(e.target.value); handleCalculatorChange(e.target.value, qty); }}
+                    className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-400"
+                  />
+                </div>
+                <span className="text-stone-400 font-medium text-sm shrink-0">×</span>
+                <div className="w-20">
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    placeholder="Qty"
+                    value={qty}
+                    onChange={(e) => { setQty(e.target.value); handleCalculatorChange(unitPrice, e.target.value); }}
+                    className="w-full border border-stone-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-400"
+                  />
+                </div>
+                <span className="text-stone-400 font-medium text-sm shrink-0">= R</span>
+                <div className="flex-1">
+                  <Input
+                    placeholder="Total"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    {...register('amount', { required: true })}
+                  />
+                </div>
+              </div>
+            </div>
+
             <Select
               label="Paid by *"
               options={members.map((m) => ({ value: m.id, label: getMemberDisplayName(m) }))}
@@ -159,7 +216,7 @@ export function ExpensesPage() {
             />
             <Textarea label="Notes" placeholder="Optional details..." {...register('notes')} />
             <div className="flex gap-2 pt-2">
-              <Button type="button" variant="secondary" onClick={() => setShowForm(false)} fullWidth>Cancel</Button>
+              <Button type="button" variant="secondary" onClick={() => { setShowForm(false); resetForm(); }} fullWidth>Cancel</Button>
               <Button type="submit" loading={createMutation.isPending} fullWidth>Add expense</Button>
             </div>
           </form>
