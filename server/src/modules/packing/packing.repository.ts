@@ -1,5 +1,6 @@
 import { prisma } from '../../db/client';
 import type { CreatePackingItemInput, UpdatePackingItemInput, CreateCategoryInput } from './packing.schema';
+import type { PACKING_TEMPLATE } from './packing.template';
 
 const ITEM_INCLUDE = {
   category: true,
@@ -58,5 +59,35 @@ export const packingRepository = {
   createCategory: (tripId: string, input: CreateCategoryInput, sortOrder: number) =>
     prisma.packingCategory.create({
       data: { ...input, tripId, isCustom: true, sortOrder },
+    }),
+
+  countItems: (tripId: string) =>
+    prisma.packingItem.count({ where: { tripId } }),
+
+  loadTemplate: (
+    tripId: string,
+    userId: string,
+    template: typeof PACKING_TEMPLATE,
+  ) =>
+    prisma.$transaction(async (tx) => {
+      for (let ci = 0; ci < template.length; ci++) {
+        const { category, items } = template[ci];
+        const cat = await tx.packingCategory.create({
+          data: { tripId, name: category, isCustom: true, sortOrder: ci },
+        });
+        for (let ii = 0; ii < items.length; ii++) {
+          await tx.packingItem.create({
+            data: {
+              tripId,
+              categoryId: cat.id,
+              name: items[ii],
+              createdById: userId,
+              requiredQuantity: 1,
+              priority: 'MEDIUM',
+              isSharedItem: true,
+            },
+          });
+        }
+      }
     }),
 };

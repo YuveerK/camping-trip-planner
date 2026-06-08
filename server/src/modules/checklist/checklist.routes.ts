@@ -20,6 +20,7 @@ router.patch('/visibility', validate(visibilitySchema), checklistController.setV
 
 // Category routes
 router.post('/categories', validate(createCategorySchema), checklistController.createCategory);
+router.post('/categories/import-packing/:packingCategoryId', checklistController.importFromPackingCategory);
 router.patch('/categories/:categoryId', validate(updateCategorySchema), checklistController.updateCategory);
 router.delete('/categories/:categoryId', checklistController.deleteCategory);
 

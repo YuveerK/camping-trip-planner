@@ -79,6 +79,13 @@ export const checklistService = {
     return checklistRepository.setVisibility(member.id, isPublic);
   },
 
+  async importFromPackingCategory(tripId: string, userId: string, packingCategoryId: string) {
+    const member = await resolveMember(tripId, userId);
+    const result = await checklistRepository.importPackingCategory(member.id, packingCategoryId);
+    if (!result) throw new AppError(404, 'Packing category not found');
+    return result;
+  },
+
   async getOwnerItems(tripId: string, userId: string) {
     await resolveMember(tripId, userId);
     const owner = await checklistRepository.findOwnerMember(tripId);

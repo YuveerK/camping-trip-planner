@@ -36,3 +36,8 @@ export const createCategory = catchAsync(async (req: Request, res: Response) => 
   const category = await packingService.createCategory(req.params['tripId'] as string, req.body);
   res.status(201).json({ status: 'success', data: category });
 });
+
+export const loadTemplate = catchAsync(async (req: Request, res: Response) => {
+  const categories = await packingService.loadTemplate(req.params['tripId'] as string, req.user!.userId);
+  res.status(201).json({ status: 'success', data: categories });
+});

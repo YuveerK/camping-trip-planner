@@ -53,6 +53,17 @@ export const deleteItem = catchAsync(async (req: Request, res: Response) => {
   res.status(204).send();
 });
 
+// ── Import from packing ───────────────────────────────────────────────────────
+
+export const importFromPackingCategory = catchAsync(async (req: Request, res: Response) => {
+  const category = await checklistService.importFromPackingCategory(
+    req.params['tripId'] as string,
+    req.user!.userId,
+    req.params['packingCategoryId'] as string,
+  );
+  res.status(201).json({ status: 'success', data: category });
+});
+
 // ── Visibility ───────────────────────────────────────────────────────────────
 
 export const setVisibility = catchAsync(async (req: Request, res: Response) => {

@@ -76,4 +76,30 @@ export const checklistRepository = {
 
   delete: (id: string) =>
     prisma.personalChecklistItem.delete({ where: { id } }),
+
+  // ── Import from packing ─────────────────────────────────────────────────────
+
+  importPackingCategory: (memberId: string, packingCategoryId: string) =>
+    prisma.$transaction(async (tx) => {
+      const packingCat = await tx.packingCategory.findFirst({
+        where: { id: packingCategoryId },
+        include: { items: { orderBy: { name: 'asc' } } },
+      });
+      if (!packingCat) return null;
+
+      const category = await tx.personalChecklistCategory.create({
+        data: { memberId, name: packingCat.name },
+      });
+
+      for (const item of packingCat.items) {
+        await tx.personalChecklistItem.create({
+          data: { memberId, categoryId: category.id, text: item.name },
+        });
+      }
+
+      return tx.personalChecklistCategory.findUnique({
+        where: { id: category.id },
+        include: { items: { orderBy: itemOrder } },
+      });
+    }),
 };

@@ -1,6 +1,7 @@
 import { packingRepository } from './packing.repository';
 import { AppError } from '../../utils/AppError';
 import type { CreatePackingItemInput, UpdatePackingItemInput, CreateCategoryInput } from './packing.schema';
+import { PACKING_TEMPLATE } from './packing.template';
 
 export const packingService = {
   getCategories: (tripId: string) => packingRepository.findCategories(tripId),
@@ -36,5 +37,12 @@ export const packingService = {
   async createCategory(tripId: string, input: CreateCategoryInput) {
     const sortOrder = await packingRepository.countCategories(tripId);
     return packingRepository.createCategory(tripId, input, sortOrder);
+  },
+
+  async loadTemplate(tripId: string, userId: string) {
+    const existing = await packingRepository.countItems(tripId);
+    if (existing > 0) throw new AppError(409, 'This trip already has packing items. Clear the list before loading a template.');
+    await packingRepository.loadTemplate(tripId, userId, PACKING_TEMPLATE);
+    return packingRepository.findCategories(tripId);
   },
 };

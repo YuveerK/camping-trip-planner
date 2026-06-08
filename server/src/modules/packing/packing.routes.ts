@@ -9,10 +9,12 @@ const router = Router({ mergeParams: true });
 
 router.use(authenticate, requireTripAccess);
 
+// Static routes before /:itemId
 router.get('/categories', packingController.getCategories);
 router.post('/categories', validate(createCategorySchema), packingController.createCategory);
-router.get('/', packingController.getItems);
 router.get('/missing', packingController.getMissingItems);
+router.post('/template', packingController.loadTemplate);
+router.get('/', packingController.getItems);
 router.post('/', validate(createPackingItemSchema), packingController.createItem);
 router.patch('/:itemId', validate(updatePackingItemSchema), packingController.updateItem);
 router.delete('/:itemId', packingController.deleteItem);
