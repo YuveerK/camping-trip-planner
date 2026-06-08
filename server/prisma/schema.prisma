@@ -1,0 +1,281 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// Enums
+// ─────────────────────────────────────────────
+
+enum MemberRole {
+  OWNER
+  MEMBER
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum MealType {
+  BREAKFAST
+  LUNCH
+  DINNER
+  SNACK
+}
+
+enum SplitType {
+  EQUAL
+  CUSTOM
+}
+
+// ─────────────────────────────────────────────
+// User
+// ─────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tripsCreated   Trip[]       @relation("TripCreator")
+  tripMemberships TripMember[]
+  packingItems   PackingItem[] @relation("PackingItemCreator")
+  tasksCreated   Task[]        @relation("TaskCreator")
+  mealsCreated   Meal[]        @relation("MealCreator")
+
+  @@index([email])
+  @@map("users")
+}
+
+// ─────────────────────────────────────────────
+// Trip
+// ─────────────────────────────────────────────
+
+model Trip {
+  id               String   @id @default(cuid())
+  name             String
+  campsiteName     String?
+  location         String?
+  checkInDate      DateTime?
+  checkOutDate     DateTime?
+  description      String?
+  bookingReference String?
+
+  createdById String
+  createdBy   User   @relation("TripCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members          TripMember[]
+  packingCategories PackingCategory[]
+  packingItems     PackingItem[]
+  tasks            Task[]
+  meals            Meal[]
+  expenses         Expense[]
+
+  @@index([createdById])
+  @@map("trips")
+}
+
+// ─────────────────────────────────────────────
+// TripMember
+// ─────────────────────────────────────────────
+
+model TripMember {
+  id     String     @id @default(cuid())
+  tripId String
+  trip   Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // For pending (uninvited) members
+  invitedName  String?
+  invitedEmail String?
+  isPending    Boolean @default(false)
+
+  role MemberRole @default(MEMBER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  itemClaims   ItemClaim[]
+  assignedTasks Task[]      @relation("TaskAssignee")
+  assignedMeals Meal[]      @relation("MealAssignee")
+  paidExpenses  Expense[]   @relation("ExpensePayer")
+
+  @@unique([tripId, userId])
+  @@index([tripId])
+  @@index([userId])
+  @@map("trip_members")
+}
+
+// ─────────────────────────────────────────────
+// PackingCategory
+// ─────────────────────────────────────────────
+
+model PackingCategory {
+  id       String @id @default(cuid())
+  tripId   String
+  trip     Trip   @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  name     String
+  isCustom Boolean @default(false)
+  sortOrder Int    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items PackingItem[]
+
+  @@index([tripId])
+  @@map("packing_categories")
+}
+
+// ─────────────────────────────────────────────
+// PackingItem
+// ─────────────────────────────────────────────
+
+model PackingItem {
+  id               String  @id @default(cuid())
+  tripId           String
+  trip             Trip    @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  categoryId       String?
+  category         PackingCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  name             String
+  description      String?
+  requiredQuantity Int     @default(1)
+  unit             String?
+  priority         Priority @default(MEDIUM)
+  isSharedItem     Boolean @default(true)
+
+  createdById String
+  createdBy   User   @relation("PackingItemCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  claims ItemClaim[]
+
+  @@unique([tripId, name])
+  @@index([tripId])
+  @@index([categoryId])
+  @@map("packing_items")
+}
+
+// ─────────────────────────────────────────────
+// ItemClaim
+// ─────────────────────────────────────────────
+
+model ItemClaim {
+  id            String     @id @default(cuid())
+  packingItemId String
+  packingItem   PackingItem @relation(fields: [packingItemId], references: [id], onDelete: Cascade)
+  memberId      String
+  member        TripMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  claimedQuantity Int      @default(1)
+  isPacked      Boolean    @default(false)
+  notes         String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([packingItemId, memberId])
+  @@index([packingItemId])
+  @@index([memberId])
+  @@map("item_claims")
+}
+
+// ─────────────────────────────────────────────
+// Task
+// ─────────────────────────────────────────────
+
+model Task {
+  id          String     @id @default(cuid())
+  tripId      String
+  trip        Trip       @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  dueDate     DateTime?
+  status      TaskStatus @default(TODO)
+
+  assignedToMemberId String?
+  assignedTo         TripMember? @relation("TaskAssignee", fields: [assignedToMemberId], references: [id], onDelete: SetNull)
+
+  createdById String
+  createdBy   User   @relation("TaskCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tripId])
+  @@index([assignedToMemberId])
+  @@map("tasks")
+}
+
+// ─────────────────────────────────────────────
+// Meal
+// ─────────────────────────────────────────────
+
+model Meal {
+  id          String   @id @default(cuid())
+  tripId      String
+  trip        Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  mealDate    DateTime
+  mealType    MealType
+  title       String
+  description String?
+
+  assignedToMemberId String?
+  assignedTo         TripMember? @relation("MealAssignee", fields: [assignedToMemberId], references: [id], onDelete: SetNull)
+
+  createdById String
+  createdBy   User   @relation("MealCreator", fields: [createdById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tripId])
+  @@index([mealDate])
+  @@map("meals")
+}
+
+// ─────────────────────────────────────────────
+// Expense
+// ─────────────────────────────────────────────
+
+model Expense {
+  id        String    @id @default(cuid())
+  tripId    String
+  trip      Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  title     String
+  amount    Decimal   @db.Decimal(10, 2)
+  splitType SplitType @default(EQUAL)
+  notes     String?
+
+  paidByMemberId String
+  paidBy         TripMember @relation("ExpensePayer", fields: [paidByMemberId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tripId])
+  @@index([paidByMemberId])
+  @@map("expenses")
+}
