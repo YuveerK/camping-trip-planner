@@ -12,14 +12,14 @@ export const updateCategorySchema = z.object({
 
 export const createChecklistItemSchema = z.object({
   text: z.string().min(1, 'Item text is required').max(300),
-  categoryId: z.string().cuid().nullable().optional(),
+  categoryId: z.preprocess((v) => (v === '' ? null : v), z.string().cuid().nullable().optional()),
   sortOrder: z.number().int().min(0).optional(),
 });
 
 export const updateChecklistItemSchema = z.object({
   text: z.string().min(1).max(300).optional(),
   isChecked: z.boolean().optional(),
-  categoryId: z.string().cuid().nullable().optional(),
+  categoryId: z.preprocess((v) => (v === '' ? null : v), z.string().cuid().nullable().optional()),
   sortOrder: z.number().int().min(0).optional(),
 });
 

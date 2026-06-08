@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const createPackingItemSchema = z.object({
   name: z.string().min(1, 'Item name is required').max(200),
   description: z.string().max(500).optional(),
-  categoryId: z.string().optional().nullable(),
+  categoryId: z.preprocess((v) => (v === '' ? null : v), z.string().min(1).optional().nullable()),
   requiredQuantity: z.number().int().min(1).default(1),
   unit: z.string().max(50).optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH']).default('MEDIUM'),
