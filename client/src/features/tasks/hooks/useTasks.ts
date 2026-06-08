@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
+import type { ApiResponse, Task } from '../../../types';
 import { tasksApi } from '../services/tasksApi';
 
 export const tasksKeys = {
@@ -15,15 +16,24 @@ export function useTasks(tripId: string | undefined) {
 }
 
 export function useDeleteTask(tripId: string | undefined, onDeleted?: () => void) {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
+  const key = tasksKeys.list(tripId);
 
   return useMutation({
     mutationFn: (taskId: string) => tasksApi.delete(tripId!, taskId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tasksKeys.list(tripId) });
-      toast.success('Task deleted');
-      onDeleted?.();
+    onMutate: async (taskId) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData(key);
+      qc.setQueryData<ApiResponse<Task[]>>(key, (old) =>
+        old ? { ...old, data: old.data.filter((t) => t.id !== taskId) } : old,
+      );
+      return { prev };
     },
-    onError: () => toast.error('Failed to delete task'),
+    onError: (_, __, context) => {
+      if (context?.prev) qc.setQueryData(key, context.prev);
+      toast.error('Failed to delete task');
+    },
+    onSuccess: () => { toast.success('Task deleted'); onDeleted?.(); },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 }

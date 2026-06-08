@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
+import type { ApiResponse, Task as TaskType } from '../../../types';
 import { Badge } from '../../../components/ui/Badge';
 import { Card } from '../../../components/ui/Card';
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner';
@@ -31,9 +32,21 @@ interface TaskCardProps {
 export function TaskCard({ task, tripId, onEdit, onDelete }: TaskCardProps) {
   const queryClient = useQueryClient();
 
+  const key = tasksKeys.list(tripId);
   const statusMutation = useMutation({
     mutationFn: (status: Task['status']) => tasksApi.update(tripId, task.id, { status }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: tasksKeys.list(tripId) }),
+    onMutate: async (newStatus) => {
+      await queryClient.cancelQueries({ queryKey: key });
+      const prev = queryClient.getQueryData(key);
+      queryClient.setQueryData<ApiResponse<TaskType[]>>(key, (old) =>
+        old ? { ...old, data: old.data.map((t) => t.id === task.id ? { ...t, status: newStatus } : t) } : old,
+      );
+      return { prev };
+    },
+    onError: (_, __, context) => {
+      if (context?.prev) queryClient.setQueryData(key, context.prev);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: key }),
   });
 
   const nextStatus: Record<Task['status'], Task['status']> = {

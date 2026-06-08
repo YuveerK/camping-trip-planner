@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import type { ApiResponse, Trip } from '../../../types';
 import { tripsApi, type CreateTripPayload } from '../services/tripsApi';
 
 export const tripsKeys = {
@@ -24,22 +25,25 @@ export function useTrip(tripId: string | undefined) {
 }
 
 export function useCreateTrip() {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   const navigate = useNavigate();
 
   return useMutation({
     mutationFn: (data: CreateTripPayload) => tripsApi.create(data),
-    onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: tripsKeys.all });
+    onSuccess: (data) => {
+      qc.setQueryData<ApiResponse<Trip[]>>(tripsKeys.all, (old) =>
+        old ? { ...old, data: [...old.data, data.data] } : old,
+      );
+      qc.invalidateQueries({ queryKey: tripsKeys.all });
       toast.success('Trip created');
-      navigate(`/trips/${response.data.id}`);
+      navigate(`/trips/${data.data.id}`);
     },
     onError: () => toast.error('Failed to create trip'),
   });
 }
 
 export function useUpdateTrip(tripId: string | undefined) {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
 
   return useMutation({
     mutationFn: (data: Record<string, string>) =>
@@ -48,9 +52,13 @@ export function useUpdateTrip(tripId: string | undefined) {
         checkInDate: data.checkInDate ? new Date(data.checkInDate).toISOString() : null,
         checkOutDate: data.checkOutDate ? new Date(data.checkOutDate).toISOString() : null,
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tripsKeys.detail(tripId) });
-      queryClient.invalidateQueries({ queryKey: tripsKeys.all });
+    onSuccess: (data) => {
+      qc.setQueryData(tripsKeys.detail(tripId), data);
+      qc.setQueryData<ApiResponse<Trip[]>>(tripsKeys.all, (old) =>
+        old ? { ...old, data: old.data.map((t) => t.id === tripId ? data.data : t) } : old,
+      );
+      qc.invalidateQueries({ queryKey: tripsKeys.detail(tripId) });
+      qc.invalidateQueries({ queryKey: tripsKeys.all });
       toast.success('Trip updated');
     },
     onError: () => toast.error('Failed to update trip'),
@@ -58,16 +66,27 @@ export function useUpdateTrip(tripId: string | undefined) {
 }
 
 export function useDeleteTrip(tripId: string | undefined) {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
   const navigate = useNavigate();
 
   return useMutation({
     mutationFn: () => tripsApi.delete(tripId!),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: tripsKeys.all });
+      const prev = qc.getQueryData(tripsKeys.all);
+      qc.setQueryData<ApiResponse<Trip[]>>(tripsKeys.all, (old) =>
+        old ? { ...old, data: old.data.filter((t) => t.id !== tripId) } : old,
+      );
+      return { prev };
+    },
+    onError: (_, __, context) => {
+      if (context?.prev) qc.setQueryData(tripsKeys.all, context.prev);
+      toast.error('Failed to delete trip');
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tripsKeys.all });
       toast.success('Trip deleted');
       navigate('/trips');
     },
-    onError: () => toast.error('Failed to delete trip'),
+    onSettled: () => qc.invalidateQueries({ queryKey: tripsKeys.all }),
   });
 }

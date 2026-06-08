@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import type { ApiResponse, TripMember } from '../../../types';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { z } from 'zod';
@@ -31,8 +32,12 @@ export function InviteMemberModal({ open, onClose, tripId }: InviteMemberModalPr
 
   const addMutation = useMutation({
     mutationFn: (data: InviteFormData) => membersApi.add(tripId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: membersKeys.list(tripId) });
+    onSuccess: (data) => {
+      const key = membersKeys.list(tripId);
+      queryClient.setQueryData<ApiResponse<TripMember[]>>(key, (old) =>
+        old ? { ...old, data: [...old.data, data.data] } : old,
+      );
+      queryClient.invalidateQueries({ queryKey: key });
       queryClient.invalidateQueries({ queryKey: tripsKeys.detail(tripId) });
       toast.success('Member added!');
       reset();

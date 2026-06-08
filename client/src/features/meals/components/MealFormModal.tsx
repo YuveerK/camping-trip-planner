@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
+import type { ApiResponse, Meal as MealType } from '../../../types';
 import { toast } from 'react-hot-toast';
 import { Button } from '../../../components/ui/Button';
 import { Input, Textarea } from '../../../components/ui/Input';
@@ -36,8 +37,15 @@ export function MealFormModal({ open, onClose, tripId, editMeal }: MealFormModal
       };
       return editMeal ? mealsApi.update(tripId, editMeal.id, payload) : mealsApi.create(tripId, payload);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: mealsKeys.list(tripId) });
+    onSuccess: (data) => {
+      const key = mealsKeys.list(tripId);
+      queryClient.setQueryData<ApiResponse<MealType[]>>(key, (old) => {
+        if (!old) return old;
+        return editMeal
+          ? { ...old, data: old.data.map((m) => m.id === editMeal.id ? data.data : m) }
+          : { ...old, data: [...old.data, data.data] };
+      });
+      queryClient.invalidateQueries({ queryKey: key });
       toast.success(editMeal ? 'Meal updated' : 'Meal added');
       reset();
       onClose();

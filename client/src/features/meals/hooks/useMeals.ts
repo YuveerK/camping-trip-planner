@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
+import type { ApiResponse, Meal } from '../../../types';
 import { mealsApi } from '../services/mealsApi';
 
 export const mealsKeys = {
@@ -15,15 +16,24 @@ export function useMeals(tripId: string | undefined) {
 }
 
 export function useDeleteMeal(tripId: string | undefined, onDeleted?: () => void) {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
+  const key = mealsKeys.list(tripId);
 
   return useMutation({
     mutationFn: (mealId: string) => mealsApi.delete(tripId!, mealId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: mealsKeys.list(tripId) });
-      toast.success('Meal removed');
-      onDeleted?.();
+    onMutate: async (mealId) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData(key);
+      qc.setQueryData<ApiResponse<Meal[]>>(key, (old) =>
+        old ? { ...old, data: old.data.filter((m) => m.id !== mealId) } : old,
+      );
+      return { prev };
     },
-    onError: () => toast.error('Failed to remove meal'),
+    onError: (_, __, context) => {
+      if (context?.prev) qc.setQueryData(key, context.prev);
+      toast.error('Failed to remove meal');
+    },
+    onSuccess: () => { toast.success('Meal removed'); onDeleted?.(); },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 }

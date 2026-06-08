@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-hot-toast';
+import type { ApiResponse, ExpenseSummary } from '../../../types';
 import { expensesApi, type CreateExpensePayload } from '../services/expensesApi';
 
 export const expensesKeys = {
@@ -15,12 +16,17 @@ export function useExpenseSummary(tripId: string | undefined) {
 }
 
 export function useCreateExpense(tripId: string | undefined, onCreated?: () => void) {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
+  const key = expensesKeys.summary(tripId);
 
   return useMutation({
     mutationFn: (data: CreateExpensePayload) => expensesApi.create(tripId!, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: expensesKeys.summary(tripId) });
+    onSuccess: (data) => {
+      // Add the new expense to the list immediately; totals update on background refetch
+      qc.setQueryData<ApiResponse<ExpenseSummary>>(key, (old) =>
+        old ? { ...old, data: { ...old.data, expenses: [...old.data.expenses, data.data] } } : old,
+      );
+      qc.invalidateQueries({ queryKey: key });
       toast.success('Expense added');
       onCreated?.();
     },
@@ -29,15 +35,24 @@ export function useCreateExpense(tripId: string | undefined, onCreated?: () => v
 }
 
 export function useDeleteExpense(tripId: string | undefined, onDeleted?: () => void) {
-  const queryClient = useQueryClient();
+  const qc = useQueryClient();
+  const key = expensesKeys.summary(tripId);
 
   return useMutation({
     mutationFn: (expenseId: string) => expensesApi.delete(tripId!, expenseId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: expensesKeys.summary(tripId) });
-      toast.success('Expense deleted');
-      onDeleted?.();
+    onMutate: async (expenseId) => {
+      await qc.cancelQueries({ queryKey: key });
+      const prev = qc.getQueryData(key);
+      qc.setQueryData<ApiResponse<ExpenseSummary>>(key, (old) =>
+        old ? { ...old, data: { ...old.data, expenses: old.data.expenses.filter((e) => e.id !== expenseId) } } : old,
+      );
+      return { prev };
     },
-    onError: () => toast.error('Failed to delete expense'),
+    onError: (_, __, context) => {
+      if (context?.prev) qc.setQueryData(key, context.prev);
+      toast.error('Failed to delete expense');
+    },
+    onSuccess: () => { toast.success('Expense deleted'); onDeleted?.(); },
+    onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
 }

@@ -7,7 +7,7 @@ import { Button } from '../../../components/ui/Button';
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner';
 import { ProgressBar } from '../../../components/ui/ProgressBar';
 import { useAuth } from '../../../hooks/useAuth';
-import type { PackingItem } from '../../../types';
+import type { ApiResponse, ItemClaim, PackingCategory, PackingItem } from '../../../types';
 import { getMemberDisplayName, getTotalClaimed } from '../../../utils/format';
 import { packingKeys } from '../hooks/usePacking';
 import { claimsApi } from '../services/claimsApi';
@@ -19,6 +19,30 @@ interface ItemClaimRowProps {
   item: PackingItem;
   tripId: string;
   onEdit: (item: PackingItem) => void;
+}
+
+// Updates the claims array of a single item in both the flat-items and
+// nested-categories caches so both stay in sync without a refetch.
+function updateItemClaims(
+  qc: ReturnType<typeof useQueryClient>,
+  tripId: string,
+  itemId: string,
+  updater: (claims: ItemClaim[]) => ItemClaim[],
+) {
+  qc.setQueryData<ApiResponse<PackingItem[]>>(
+    packingKeys.items(tripId),
+    (old) => old ? { ...old, data: old.data.map((i) => i.id === itemId ? { ...i, claims: updater(i.claims) } : i) } : old,
+  );
+  qc.setQueryData<ApiResponse<PackingCategory[]>>(
+    packingKeys.categories(tripId),
+    (old) => old ? {
+      ...old,
+      data: old.data.map((cat) => ({
+        ...cat,
+        items: cat.items?.map((i) => i.id === itemId ? { ...i, claims: updater(i.claims) } : i) ?? [],
+      })),
+    } : old,
+  );
 }
 
 export function ItemClaimRow({ item, tripId, onEdit }: ItemClaimRowProps) {
@@ -37,14 +61,83 @@ export function ItemClaimRow({ item, tripId, onEdit }: ItemClaimRowProps) {
     qc.invalidateQueries({ queryKey: packingKeys.categories(tripId) });
   };
 
+  const snapshot = () => ({
+    prevItems: qc.getQueryData(packingKeys.items(tripId)),
+    prevCats: qc.getQueryData(packingKeys.categories(tripId)),
+  });
+
+  const rollback = (context: { prevItems: unknown; prevCats: unknown } | undefined) => {
+    if (context?.prevItems) qc.setQueryData(packingKeys.items(tripId), context.prevItems);
+    if (context?.prevCats) qc.setQueryData(packingKeys.categories(tripId), context.prevCats);
+  };
+
+  // Claim — uses server response to update cache (can't predict the new claim's ID)
   const claimMut = useMutation({
     mutationFn: () => claimsApi.create(item.id, { claimedQuantity: claimQty }),
-    onSuccess: () => { invalidate(); toast.success('Item claimed!'); setShowClaim(false); },
+    onSuccess: (data) => {
+      updateItemClaims(qc, tripId, item.id, (claims) => [...claims, data.data]);
+      toast.success('Item claimed!');
+      setShowClaim(false);
+    },
     onError: (err: unknown) => toast.error((err as { response?: { data?: { message?: string } } })?.response?.data?.message ?? 'Failed to claim'),
+    onSettled: invalidate,
   });
-  const togglePackedMut = useMutation({ mutationFn: () => claimsApi.togglePacked(item.id, myMember!.id), onSuccess: invalidate });
-  const unclaimMut = useMutation({ mutationFn: () => claimsApi.delete(item.id, myMember!.id), onSuccess: () => { invalidate(); toast.success('Unclaimed'); } });
-  const deleteMut = useMutation({ mutationFn: () => packingApi.delete(tripId, item.id), onSuccess: () => { invalidate(); toast.success('Item removed'); }, onError: () => toast.error('Failed to delete item') });
+
+  // Toggle packed — optimistic: flip isPacked immediately
+  const togglePackedMut = useMutation({
+    mutationFn: () => claimsApi.togglePacked(item.id, myMember!.id),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: packingKeys.items(tripId) });
+      await qc.cancelQueries({ queryKey: packingKeys.categories(tripId) });
+      const ctx = snapshot();
+      updateItemClaims(qc, tripId, item.id, (claims) =>
+        claims.map((c) => c.id === myMember!.id ? { ...c, isPacked: !c.isPacked } : c),
+      );
+      return ctx;
+    },
+    onError: (_, __, context) => rollback(context),
+    onSettled: invalidate,
+  });
+
+  // Unclaim — optimistic: remove claim immediately
+  const unclaimMut = useMutation({
+    mutationFn: () => claimsApi.delete(item.id, myMember!.id),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: packingKeys.items(tripId) });
+      await qc.cancelQueries({ queryKey: packingKeys.categories(tripId) });
+      const ctx = snapshot();
+      updateItemClaims(qc, tripId, item.id, (claims) => claims.filter((c) => c.id !== myMember!.id));
+      return ctx;
+    },
+    onError: (_, __, context) => { rollback(context); toast.error('Failed to unclaim'); },
+    onSuccess: () => toast.success('Unclaimed'),
+    onSettled: invalidate,
+  });
+
+  // Delete item — optimistic: remove item from both caches immediately
+  const deleteMut = useMutation({
+    mutationFn: () => packingApi.delete(tripId, item.id),
+    onMutate: async () => {
+      await qc.cancelQueries({ queryKey: packingKeys.items(tripId) });
+      await qc.cancelQueries({ queryKey: packingKeys.categories(tripId) });
+      const ctx = snapshot();
+      qc.setQueryData<ApiResponse<PackingItem[]>>(
+        packingKeys.items(tripId),
+        (old) => old ? { ...old, data: old.data.filter((i) => i.id !== item.id) } : old,
+      );
+      qc.setQueryData<ApiResponse<PackingCategory[]>>(
+        packingKeys.categories(tripId),
+        (old) => old ? {
+          ...old,
+          data: old.data.map((cat) => ({ ...cat, items: cat.items?.filter((i) => i.id !== item.id) ?? [] })),
+        } : old,
+      );
+      return ctx;
+    },
+    onError: (_, __, context) => { rollback(context); toast.error('Failed to delete item'); },
+    onSuccess: () => toast.success('Item removed'),
+    onSettled: invalidate,
+  });
 
   return (
     <div className="py-3 border-b border-stone-100 last:border-0">

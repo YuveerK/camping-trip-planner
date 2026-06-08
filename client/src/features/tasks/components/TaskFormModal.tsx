@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
+import type { ApiResponse, Task as TaskType } from '../../../types';
 import { toast } from 'react-hot-toast';
 import { Button } from '../../../components/ui/Button';
 import { Input, Textarea } from '../../../components/ui/Input';
@@ -44,8 +45,15 @@ export function TaskFormModal({ open, onClose, tripId, editTask }: TaskFormModal
       };
       return editTask ? tasksApi.update(tripId, editTask.id, payload) : tasksApi.create(tripId, payload);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: tasksKeys.list(tripId) });
+    onSuccess: (data) => {
+      const key = tasksKeys.list(tripId);
+      queryClient.setQueryData<ApiResponse<TaskType[]>>(key, (old) => {
+        if (!old) return old;
+        return editTask
+          ? { ...old, data: old.data.map((t) => t.id === editTask.id ? data.data : t) }
+          : { ...old, data: [...old.data, data.data] };
+      });
+      queryClient.invalidateQueries({ queryKey: key });
       toast.success(editTask ? 'Task updated' : 'Task created');
       reset();
       onClose();
