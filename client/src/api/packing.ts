@@ -26,4 +26,6 @@ export const packingApi = {
     api.patch<ApiResponse<PackingItem>>(`/trips/${tripId}/packing-items/${itemId}`, data).then((r) => r.data),
   delete: (tripId: string, itemId: string) =>
     api.delete(`/trips/${tripId}/packing-items/${itemId}`),
+  loadTemplate: (tripId: string) =>
+    api.post<ApiResponse<PackingCategory[]>>(`/trips/${tripId}/packing-items/template`).then((r) => r.data),
 };

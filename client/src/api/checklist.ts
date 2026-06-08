@@ -38,6 +38,12 @@ export const checklistApi = {
 
   delete: (tripId: string, itemId: string) => api.delete(`/trips/${tripId}/checklist/${itemId}`),
 
+  // ── Import from packing ─────────────────────────────────────────────────────
+  importPackingCategory: (tripId: string, packingCategoryId: string) =>
+    api
+      .post<ApiResponse<ChecklistCategory>>(`/trips/${tripId}/checklist/categories/import-packing/${packingCategoryId}`)
+      .then((r) => r.data),
+
   // ── Visibility ──────────────────────────────────────────────────────────────
   setVisibility: (tripId: string, isPublic: boolean) =>
     api
