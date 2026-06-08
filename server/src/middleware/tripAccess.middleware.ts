@@ -1,9 +1,9 @@
-import { Request, Response, NextFunction } from 'express';
+﻿import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../db/client';
 import { AppError } from '../utils/AppError';
 
 export function requireTripAccess(req: Request, _res: Response, next: NextFunction): void {
-  const tripId = req.params['tripId'];
+  const tripId = req.params['tripId'] as string;
   const userId = req.user!.userId;
 
   prisma.tripMember
@@ -22,3 +22,5 @@ export function requireOwner(req: Request, _res: Response, next: NextFunction): 
   }
   next();
 }
+
+

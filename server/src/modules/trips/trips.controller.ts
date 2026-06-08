@@ -8,7 +8,7 @@ export const getTrips = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const getTrip = catchAsync(async (req: Request, res: Response) => {
-  const trip = await tripsService.getTrip(req.params['tripId']!);
+  const trip = await tripsService.getTrip(req.params['tripId'] as string);
   res.json({ status: 'success', data: trip });
 });
 
@@ -18,11 +18,11 @@ export const createTrip = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const updateTrip = catchAsync(async (req: Request, res: Response) => {
-  const trip = await tripsService.updateTrip(req.params['tripId']!, req.body);
+  const trip = await tripsService.updateTrip(req.params['tripId'] as string, req.body);
   res.json({ status: 'success', data: trip });
 });
 
 export const deleteTrip = catchAsync(async (req: Request, res: Response) => {
-  await tripsService.deleteTrip(req.params['tripId']!);
+  await tripsService.deleteTrip(req.params['tripId'] as string);
   res.status(204).send();
 });
