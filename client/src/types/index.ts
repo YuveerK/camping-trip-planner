@@ -48,6 +48,7 @@ export interface TripMember {
   invitedEmail?: string | null;
   isPending: boolean;
   role: MemberRole;
+  checklistIsPublic: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -162,6 +163,41 @@ export interface ExpenseSummary {
   expenses: Expense[];
   totalAmount: number;
   perMemberBalance: MemberBalance[];
+}
+
+// ─── Checklist ───────────────────────────────────────────────────────────────
+
+export interface ChecklistItem {
+  id: string;
+  memberId: string;
+  categoryId?: string | null;
+  text: string;
+  isChecked: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChecklistCategory {
+  id: string;
+  memberId: string;
+  name: string;
+  sortOrder: number;
+  items: ChecklistItem[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ChecklistData {
+  categories: ChecklistCategory[];
+  uncategorized: ChecklistItem[];
+}
+
+export interface OwnerChecklistData {
+  isPublic: boolean;
+  ownerName: string;
+  categories: ChecklistCategory[];
+  uncategorized: ChecklistItem[];
 }
 
 // ─── API Response ────────────────────────────────────────────────────────────
