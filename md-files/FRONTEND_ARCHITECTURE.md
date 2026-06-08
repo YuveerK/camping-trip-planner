@@ -495,6 +495,53 @@ npm run dev
 
 ---
 
+## Refactoring a Monolithic File
+
+Sometimes a feature starts life as one giant file — a single `Trips.tsx` that fetches data, holds state, defines types, declares three sub-components, and renders the page. That's a normal starting point; the goal is to split it into the layout above _without breaking it mid-way_. This is the reverse of "Adding a New Feature": same destinations, opposite direction.
+
+### Signs a file has outgrown itself
+
+- It mixes more than one layer — e.g. an `axios` call **and** a `useQuery` **and** JSX all in the same file.
+- You scroll to find things, or it's past ~200–300 lines.
+- Multiple components are declared in one file and at least one is reused elsewhere.
+- Inline `interface`/`type` blocks that other files would benefit from importing.
+- You hesitate to touch it because you're not sure what else depends on what.
+
+### Where each piece goes
+
+| Crammed into the giant file                          | Extract to                                                  |
+| ---------------------------------------------------- | ----------------------------------------------------------- |
+| Inline `axios.get/post(...)` calls                   | `features/<x>/services/<x>Api.ts`                           |
+| `useQuery` / `useMutation`, query keys, cache config | `features/<x>/hooks/use<X>.ts`                              |
+| Inline `interface` / `type` definitions              | `features/<x>/types/index.ts`                               |
+| Sub-components declared in the same file             | `features/<x>/components/<Name>.tsx`                        |
+| Date / price / string helpers                        | `utils/formatters.ts` (or feature-local if domain-specific) |
+| Zod form schema                                      | colocated with the form component, or `types/`              |
+| The page shell + top-level JSX                       | `features/<x>/pages/<X>Page.tsx` (this is what stays)       |
+
+### Extraction order (one move at a time, stay green)
+
+Do these as **separate commits**, running the app (and `npm run lint`) after each so a mistake is easy to isolate:
+
+1. **Types first.** They have no dependencies, so moving them can't break runtime behaviour. Pull `interface`/`type` blocks into `types/index.ts` and import them back.
+2. **Pure helpers.** Move formatters/utilities out next — also dependency-free.
+3. **The API call.** Lift the raw `axios` logic into `services/<x>Api.ts`, returning typed promises and unwrapping `data.data`.
+4. **The data hook.** Wrap the fetching/mutation in `hooks/use<X>.ts` (query keys + cache live here). The component now calls the hook instead of holding `useEffect`/`useState` fetch logic.
+5. **Sub-components.** Move each child component into `components/`, passing data in via props. Extract leaf components (no children of their own) first.
+6. **The page is what remains.** Once the above is gone, the original file should be a thin shell — rename/relocate it to `pages/<X>Page.tsx`. If it's still doing a lot, repeat from step 5.
+
+### Pitfalls
+
+- **Don't extract everything at once.** A 6-file PR that doesn't compile is far harder to debug than six small green steps.
+- **Avoid premature splitting.** A component used in exactly one place that's under ~150 lines is often fine where it is. Extract when there's reuse, real complexity, or a layer mismatch — not for tidiness alone.
+- **Watch for circular imports.** If a hook imports a component that imports the hook, a type or constant probably needs to move to a neutral file (`types/` or `utils/`).
+- **Props over prop-drilling.** When extracting sub-components, if you find yourself threading the same prop through three layers, that's a signal for context or a colocated hook — not deeper drilling.
+- **Keep one component per file** once extracted, named to match the filename.
+
+> This same order — types → helpers → data layer → hooks → child components → leave the shell last — transfers directly to decomposing large React components anywhere, not just this project.
+
+---
+
 ## Adding a New Feature (checklist)
 
 To add, say, a `gear/` feature:

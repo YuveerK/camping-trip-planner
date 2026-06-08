@@ -1,5 +1,6 @@
 import { ReactNode, useEffect } from 'react';
 import { clsx } from 'clsx';
+import { LoadingSpinner } from './LoadingSpinner';
 
 interface ModalProps {
   open: boolean;
@@ -72,16 +73,18 @@ export function ConfirmModal({ open, onClose, onConfirm, title, message, confirm
       <div className="flex gap-2 justify-end">
         <button
           onClick={onClose}
-          className="px-4 py-2 text-sm font-medium text-stone-600 bg-stone-100 rounded-xl hover:bg-stone-200 transition-colors"
+          disabled={loading}
+          className="px-4 py-2 text-sm font-medium text-stone-600 bg-stone-100 rounded-xl hover:bg-stone-200 transition-colors disabled:cursor-wait disabled:opacity-60"
         >
           Cancel
         </button>
         <button
           onClick={onConfirm}
           disabled={loading}
-          className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-xl hover:bg-red-600 disabled:opacity-50 transition-colors"
+          className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-xl hover:bg-red-600 disabled:cursor-wait disabled:opacity-70 transition-colors"
         >
-          {loading ? 'Deleting...' : confirmLabel}
+          {loading && <LoadingSpinner size="sm" className="text-white" />}
+          {loading ? 'Working...' : confirmLabel}
         </button>
       </div>
     </Modal>
