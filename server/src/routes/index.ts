@@ -1,12 +1,12 @@
 import { Router } from 'express';
-import authRoutes from './auth.routes';
-import tripsRoutes from './trips.routes';
-import membersRoutes from './members.routes';
-import packingRoutes from './packing.routes';
-import claimsRoutes from './claims.routes';
-import tasksRoutes from './tasks.routes';
-import mealsRoutes from './meals.routes';
-import expensesRoutes from './expenses.routes';
+import authRoutes from '../modules/auth/auth.routes';
+import tripsRoutes from '../modules/trips/trips.routes';
+import membersRoutes from '../modules/members/members.routes';
+import packingRoutes from '../modules/packing/packing.routes';
+import claimsRoutes from '../modules/claims/claims.routes';
+import tasksRoutes from '../modules/tasks/tasks.routes';
+import mealsRoutes from '../modules/meals/meals.routes';
+import expensesRoutes from '../modules/expenses/expenses.routes';
 
 const router = Router();
 

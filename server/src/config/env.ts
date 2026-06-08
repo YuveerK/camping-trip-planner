@@ -1,17 +1,20 @@
-import dotenv from 'dotenv';
-dotenv.config();
+import 'dotenv/config';
+import { z } from 'zod';
 
-function requireEnv(key: string): string {
-  const value = process.env[key];
-  if (!value) throw new Error(`Missing required environment variable: ${key}`);
-  return value;
+const envSchema = z.object({
+  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  PORT: z.coerce.number().default(5000),
+  DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
+  JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
+  JWT_EXPIRES_IN: z.string().default('7d'),
+  CLIENT_URL: z.string().default('http://localhost:5173'),
+});
+
+const parsed = envSchema.safeParse(process.env);
+
+if (!parsed.success) {
+  console.error('Invalid environment variables:', parsed.error.flatten().fieldErrors);
+  process.exit(1);
 }
 
-export const env = {
-  DATABASE_URL: requireEnv('DATABASE_URL'),
-  JWT_SECRET: requireEnv('JWT_SECRET'),
-  JWT_EXPIRES_IN: process.env['JWT_EXPIRES_IN'] ?? '7d',
-  PORT: parseInt(process.env['PORT'] ?? '5000', 10),
-  NODE_ENV: process.env['NODE_ENV'] ?? 'development',
-  CLIENT_URL: process.env['CLIENT_URL'] ?? 'http://localhost:5173',
-};
+export const env = parsed.data;

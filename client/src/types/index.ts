@@ -167,7 +167,8 @@ export interface ExpenseSummary {
 // ─── API Response ────────────────────────────────────────────────────────────
 
 export interface ApiResponse<T> {
-  success: boolean;
+  status: 'success' | 'fail' | 'error';
   message?: string;
   data: T;
+  errors?: Record<string, string[]>;
 }

@@ -1,23 +1,28 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, JwtPayload } from '../utils/jwt';
-import { unauthorized } from '../utils/response';
+import { AppError } from '../utils/AppError';
 
-export interface AuthRequest extends Request {
-  user?: JwtPayload;
+declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
+  namespace Express {
+    interface Request {
+      user?: JwtPayload;
+      tripMember?: { id: string; role: string };
+    }
+  }
 }
 
-export function authenticate(req: AuthRequest, res: Response, next: NextFunction): void {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    unauthorized(res);
-    return;
-  }
+export type AuthRequest = Request;
 
-  const token = authHeader.slice(7);
+export function authenticate(req: Request, _res: Response, next: NextFunction): void {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer ')) {
+    return next(new AppError(401, 'Missing or malformed authorization header'));
+  }
   try {
-    req.user = verifyToken(token);
+    req.user = verifyToken(header.slice(7));
     next();
   } catch {
-    unauthorized(res, 'Invalid or expired token');
+    next(new AppError(401, 'Invalid or expired token'));
   }
 }
