@@ -388,20 +388,25 @@ export function PackingListPage() {
   return (
     <TripLayout>
       <div className="page-container pt-4">
-        {/* Tab bar */}
-        <div className="flex bg-stone-100 rounded-xl p-1 mb-4">
-          {tabs.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setSearchParams(t.id === 'all' ? {} : { tab: t.id })}
-              className={clsx(
-                'flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors',
-                tab === t.id ? 'bg-white text-stone-800 shadow-sm' : 'text-stone-500'
-              )}
-            >
-              {t.label}
-            </button>
-          ))}
+        {/* Tab bar + add button */}
+        <div className="flex items-center gap-2 mb-4">
+          <div className="flex flex-1 bg-stone-100 rounded-xl p-1">
+            {tabs.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setSearchParams(t.id === 'all' ? {} : { tab: t.id })}
+                className={clsx(
+                  'flex-1 py-1.5 text-xs font-medium rounded-lg transition-colors',
+                  tab === t.id ? 'bg-white text-stone-800 shadow-sm' : 'text-stone-500'
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <Button onClick={() => setShowAddItem(true)} size="sm">
+            + Add item
+          </Button>
         </div>
 
         {isLoading ? (
@@ -466,13 +471,6 @@ export function PackingListPage() {
               </div>
             )}
 
-            {tab === 'all' && (
-              <div className="mt-4">
-                <Button fullWidth variant="secondary" onClick={() => setShowAddItem(true)}>
-                  + Add item
-                </Button>
-              </div>
-            )}
           </>
         )}
 
