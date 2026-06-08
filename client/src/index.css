@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply font-sans;
+  }
+
+  input[type='date'],
+  input[type='datetime-local'] {
+    @apply text-stone-700;
+  }
+}
+
+@layer components {
+  .page-container {
+    @apply max-w-2xl mx-auto px-4 pb-24;
+  }
+
+  .section-title {
+    @apply text-sm font-semibold text-stone-500 uppercase tracking-wider px-1 mb-3;
+  }
+}
