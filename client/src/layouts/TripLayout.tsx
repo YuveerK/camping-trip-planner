@@ -15,6 +15,7 @@ function useTripTabs(tripId: string): TabItem[] {
   return [
     { to: `/trips/${tripId}`, icon: '🏕️', label: 'Overview' },
     { to: `/trips/${tripId}/packing`, icon: '🎒', label: 'Packing' },
+    { to: `/trips/${tripId}/checklist`, icon: '📋', label: 'My List' },
     { to: `/trips/${tripId}/tasks`, icon: '✅', label: 'Tasks' },
     { to: `/trips/${tripId}/meals`, icon: '🍖', label: 'Meals' },
     { to: `/trips/${tripId}/expenses`, icon: '💰', label: 'Expenses' },

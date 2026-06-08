@@ -116,10 +116,11 @@ model TripMember {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  itemClaims   ItemClaim[]
-  assignedTasks Task[]      @relation("TaskAssignee")
-  assignedMeals Meal[]      @relation("MealAssignee")
-  paidExpenses  Expense[]   @relation("ExpensePayer")
+  itemClaims     ItemClaim[]
+  assignedTasks  Task[]                  @relation("TaskAssignee")
+  assignedMeals  Meal[]                  @relation("MealAssignee")
+  paidExpenses   Expense[]               @relation("ExpensePayer")
+  checklistItems PersonalChecklistItem[]
 
   @@unique([tripId, userId])
   @@index([tripId])
@@ -254,6 +255,25 @@ model Meal {
   @@index([tripId])
   @@index([mealDate])
   @@map("meals")
+}
+
+// ─────────────────────────────────────────────
+// PersonalChecklistItem
+// ─────────────────────────────────────────────
+
+model PersonalChecklistItem {
+  id        String     @id @default(cuid())
+  memberId  String
+  member    TripMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  text      String
+  isChecked Boolean    @default(false)
+  sortOrder Int        @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([memberId])
+  @@map("personal_checklist_items")
 }
 
 // ─────────────────────────────────────────────

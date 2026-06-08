@@ -17,6 +17,7 @@ import { MealsPage } from './pages/trip/MealsPage';
 import { ExpensesPage } from './pages/trip/ExpensesPage';
 import { MembersPage } from './pages/trip/MembersPage';
 import { TripSettingsPage } from './pages/trip/TripSettingsPage';
+import { ChecklistPage } from './pages/trip/ChecklistPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -49,6 +50,7 @@ export default function App() {
               <Route path="/trips/new" element={<CreateTripPage />} />
               <Route path="/trips/:tripId" element={<TripDashboardPage />} />
               <Route path="/trips/:tripId/packing" element={<PackingListPage />} />
+              <Route path="/trips/:tripId/checklist" element={<ChecklistPage />} />
               <Route path="/trips/:tripId/tasks" element={<TasksPage />} />
               <Route path="/trips/:tripId/meals" element={<MealsPage />} />
               <Route path="/trips/:tripId/expenses" element={<ExpensesPage />} />

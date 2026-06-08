@@ -7,6 +7,7 @@ import claimsRoutes from '../modules/claims/claims.routes';
 import tasksRoutes from '../modules/tasks/tasks.routes';
 import mealsRoutes from '../modules/meals/meals.routes';
 import expensesRoutes from '../modules/expenses/expenses.routes';
+import checklistRoutes from '../modules/checklist/checklist.routes';
 
 const router = Router();
 
@@ -18,5 +19,6 @@ router.use('/packing-items/:itemId/claims', claimsRoutes);
 router.use('/trips/:tripId/tasks', tasksRoutes);
 router.use('/trips/:tripId/meals', mealsRoutes);
 router.use('/trips/:tripId/expenses', expensesRoutes);
+router.use('/trips/:tripId/checklist', checklistRoutes);
 
 export default router;
