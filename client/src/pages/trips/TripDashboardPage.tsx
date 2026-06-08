@@ -10,7 +10,7 @@ import { StatCard } from '../../components/ui/StatCard';
 import { Card, CardBody, CardHeader } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import { PageLoader } from '../../components/ui/LoadingSpinner';
-import { formatDateRange, formatDate } from '../../utils/date';
+import { formatDateRange } from '../../utils/date';
 import { formatCurrency, getTotalClaimed } from '../../utils/format';
 
 export function TripDashboardPage() {

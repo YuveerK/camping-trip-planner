@@ -1,21 +1,8 @@
 import { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { clsx } from 'clsx';
-
-interface NavItem {
-  to: string;
-  icon: string;
-  label: string;
-}
-
-const NAV_ITEMS: NavItem[] = [
-  { to: '/trips', icon: '🗺️', label: 'Trips' },
-  { to: '/profile', icon: '👤', label: 'Profile' },
-];
 
 export function MainLayout({ children }: { children: ReactNode }) {
-  const location = useLocation();
   const { user, logout } = useAuth();
 
   return (

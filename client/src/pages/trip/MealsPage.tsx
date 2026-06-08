@@ -21,6 +21,16 @@ import type { Meal } from '../../types';
 const MEAL_ICONS = { BREAKFAST: '🌅', LUNCH: '☀️', DINNER: '🌙', SNACK: '🍎' };
 const MEAL_COLORS = { BREAKFAST: 'earth', LUNCH: 'blue', DINNER: 'green', SNACK: 'gray' } as const;
 
+function toMealFormValues(meal: Meal): CreateMealPayload {
+  return {
+    title: meal.title,
+    description: meal.description ?? '',
+    mealDate: meal.mealDate.slice(0, 10),
+    mealType: meal.mealType,
+    assignedToMemberId: meal.assignedToMemberId ?? '',
+  };
+}
+
 function MealCard({ meal, onEdit, onDelete }: { meal: Meal; onEdit: () => void; onDelete: () => void }) {
   return (
     <div className="flex items-start gap-3 py-3 border-b border-stone-100 last:border-0">
@@ -91,7 +101,7 @@ export function MealsPage() {
 
   const { register, handleSubmit, reset } = useForm<CreateMealPayload>({
     defaultValues: editMeal
-      ? { ...editMeal, mealDate: editMeal.mealDate.slice(0, 10), assignedToMemberId: editMeal.assignedToMemberId ?? '' }
+      ? toMealFormValues(editMeal)
       : { mealType: 'DINNER' },
   });
 
@@ -156,7 +166,7 @@ export function MealsPage() {
                           meal={meal}
                           onEdit={() => {
                             setEditMeal(meal);
-                            reset({ ...meal, mealDate: meal.mealDate.slice(0, 10), assignedToMemberId: meal.assignedToMemberId ?? '' });
+                            reset(toMealFormValues(meal));
                             setShowForm(true);
                           }}
                           onDelete={() => setDeleteMeal(meal)}

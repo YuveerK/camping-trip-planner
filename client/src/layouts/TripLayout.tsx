@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Link, useLocation, useParams, NavLink } from 'react-router-dom';
+import { Link, useLocation, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { tripsApi } from '../api/trips';
 import { useAuth } from '../hooks/useAuth';
@@ -26,7 +26,7 @@ function useTripTabs(tripId: string): TabItem[] {
 export function TripLayout({ children }: { children: ReactNode }) {
   const { tripId } = useParams<{ tripId: string }>();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const tabs = useTripTabs(tripId!);
 
   const { data } = useQuery({

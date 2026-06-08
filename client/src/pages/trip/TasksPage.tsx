@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 import { tasksApi, type CreateTaskPayload } from '../../api/tasks';
 import { membersApi } from '../../api/members';
 import { TripLayout } from '../../layouts/TripLayout';
-import { Card, CardBody } from '../../components/ui/Card';
+import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Modal, ConfirmModal } from '../../components/ui/Modal';
