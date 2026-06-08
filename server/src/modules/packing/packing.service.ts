@@ -39,6 +39,12 @@ export const packingService = {
     return packingRepository.createCategory(tripId, input, sortOrder);
   },
 
+  async deleteCategory(tripId: string, categoryId: string) {
+    const category = await packingRepository.findCategoryById(tripId, categoryId);
+    if (!category) throw new AppError(404, 'Packing category not found');
+    return packingRepository.deleteCategoryWithItems(categoryId);
+  },
+
   async loadTemplate(tripId: string, userId: string) {
     const existing = await packingRepository.countItems(tripId);
     if (existing > 0) throw new AppError(409, 'This trip already has packing items. Clear the list before loading a template.');

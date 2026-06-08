@@ -37,6 +37,11 @@ export const createCategory = catchAsync(async (req: Request, res: Response) => 
   res.status(201).json({ status: 'success', data: category });
 });
 
+export const deleteCategory = catchAsync(async (req: Request, res: Response) => {
+  await packingService.deleteCategory(req.params['tripId'] as string, req.params['categoryId'] as string);
+  res.status(204).send();
+});
+
 export const loadTemplate = catchAsync(async (req: Request, res: Response) => {
   const categories = await packingService.loadTemplate(req.params['tripId'] as string, req.user!.userId);
   res.status(201).json({ status: 'success', data: categories });

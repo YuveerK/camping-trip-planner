@@ -12,6 +12,7 @@ router.use(authenticate, requireTripAccess);
 // Static routes before /:itemId
 router.get('/categories', packingController.getCategories);
 router.post('/categories', validate(createCategorySchema), packingController.createCategory);
+router.delete('/categories/:categoryId', packingController.deleteCategory);
 router.get('/missing', packingController.getMissingItems);
 router.post('/template', packingController.loadTemplate);
 router.get('/', packingController.getItems);

@@ -37,6 +37,9 @@ export const packingRepository = {
       where: { tripId, name: { equals: name, mode: 'insensitive' } },
     }),
 
+  findCategoryById: (tripId: string, categoryId: string) =>
+    prisma.packingCategory.findFirst({ where: { id: categoryId, tripId } }),
+
   createItem: (tripId: string, userId: string, input: CreatePackingItemInput) =>
     prisma.packingItem.create({
       data: { ...input, name: input.name.trim(), tripId, createdById: userId },
@@ -61,6 +64,12 @@ export const packingRepository = {
       data: { ...input, tripId, isCustom: true, sortOrder },
     }),
 
+  deleteCategoryWithItems: (categoryId: string) =>
+    prisma.$transaction([
+      prisma.packingItem.deleteMany({ where: { categoryId } }),
+      prisma.packingCategory.delete({ where: { id: categoryId } }),
+    ]),
+
   countItems: (tripId: string) =>
     prisma.packingItem.count({ where: { tripId } }),
 
@@ -75,19 +84,18 @@ export const packingRepository = {
         const cat = await tx.packingCategory.create({
           data: { tripId, name: category, isCustom: true, sortOrder: ci },
         });
-        for (let ii = 0; ii < items.length; ii++) {
-          await tx.packingItem.create({
-            data: {
-              tripId,
-              categoryId: cat.id,
-              name: items[ii],
-              createdById: userId,
-              requiredQuantity: 1,
-              priority: 'MEDIUM',
-              isSharedItem: true,
-            },
-          });
-        }
+
+        await tx.packingItem.createMany({
+          data: items.map((name) => ({
+            tripId,
+            categoryId: cat.id,
+            name,
+            createdById: userId,
+            requiredQuantity: 1,
+            priority: 'MEDIUM',
+            isSharedItem: true,
+          })),
+        });
       }
     }),
 };
